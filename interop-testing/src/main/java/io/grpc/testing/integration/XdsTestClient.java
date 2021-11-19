@@ -257,10 +257,24 @@ public final class XdsTestClient {
                     secureMode
                         ? XdsChannelCredentials.create(InsecureChannelCredentials.create())
                         : InsecureChannelCredentials.create())
+                //lower the value here - higher the exceptions rate
+                .idleTimeout(1000, TimeUnit.MILLISECONDS)
                 .enableRetry()
                 .build());
       }
       exec = MoreExecutors.listeningDecorator(Executors.newSingleThreadScheduledExecutor());
+
+      new Thread(new Runnable() {
+        @Override
+        public void run() {
+          while (true) {
+            for (ManagedChannel channel : channels) {
+              channel.enterIdle();
+            }
+          }
+        }
+      }).start();
+
       runQps();
     } catch (Throwable t) {
       logger.log(Level.SEVERE, "Error running client", t);
